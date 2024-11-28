@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thuật toán NEEDLEMAN-WUNSCH</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/jquery-3.7.1.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script>
+        var inputArray = [], countRow, countColumn, match, misMatch, gap, rowArray = [], alignment = [];
+        function createTable(row, column) {
+            var tbody = $("<tbody></tbody>");
+            for(var i = 0; i < row; i++) {
+                var tr = $("<tr></tr>");
+                for(var j = 0; j < column; j++) {
+                    var td = $("<td></td>");
+                    if(i == 0 && j > 1) {
+                        var input = $("<input></input>").attr('class', 'form-control');
+                        td.append(input);
+                        inputArray.push(input);
+                    }
+                    if(j == 0 && i > 1) {
+                        var input = $("<input></input>").attr('class', 'form-control');
+                        td.append(input);
+                        inputArray.push(input);
+                    }
+                    td.attr({'style': 'text-align: center; position: relative;'});
+                    tr.append(td);
+                }
+                tbody.append(tr);
+            }
+            return tbody;
+        }
+        $(document).ready(function() {
+            $("#clickToCreateTable").click(function() {
+                if($("#cf").children("div").length > 6)
+                    $("#cf").children("div").slice(6).remove();
+                inputArray.splice(0, inputArray.length);
+                $("#table").html("");
+                var regex = /^\d+$/;
+                var regex1 = /^-?\d+$/;
+                var canCreateTable = true;
+                var row = regex.test($("#getRow").val())? parseInt($("#getRow").val()) + 2 : false;
+                var column = regex.test($("#getColumn").val())? parseInt($("#getColumn").val()) + 2 : false;
+                match = regex1.test($("#getMatch").val())? parseInt($("#getMatch").val()) : false;
+                misMatch = regex1.test($("#getMismatch").val())? parseInt($("#getMismatch").val()) : false;
+                gap = regex1.test($("#getGap").val())? parseInt($("#getGap").val()) : false;
+                if(!row || !column || row < 3 || column < 3) {
+                    $("#thongBaoLoi").attr('style', 'display: block');
+                    canCreateTable = false;
+                }
+                else
+                    $("#thongBaoLoi").attr('style', 'display: none');
+                if(match === false || misMatch === false || gap === false || !(misMatch >= gap) || !(misMatch < match)) {
+                    $("#thongBaoLoi1").attr('style', 'display: block');
+                    canCreateTable = false;
+                }
+                else
+                    $("#thongBaoLoi1").attr('style', 'display: none');
+                if(!canCreateTable)return;
+                countRow = row;
+                countColumn = column;
+                $("#table").append(createTable(row, column));
+            })
+            $("#tinhToan").click(function() {
+                var count = 0;
+                var regex = /^[A-Z]$/;
+                for(var i = 0; i < inputArray.length; i++) {
+                    if(inputArray[i].val().length > 0 && regex.test(inputArray[i].val()))
+                        count++;
+                }
+                if(count == countRow + countColumn - 4) {
+                    tinhToan();
+                    var alignment1 = [];
+                    color(countRow - 2, countColumn - 2, alignment1);
+                    showPath();
+                }
+            })
+        })
+        function tinhToan() {
+            rowArray.splice(0, rowArray.length);
+            alignment.splice(0, alignment.length);
+            if($("#cf").children("div").length > 6)
+                $("#cf").children("div").slice(6).remove();
+
+            var largest;
+            var topleft, topright, bottomleft;
+            for(var i = 1; i < countRow; i++) {
+                var columnArray = [];
+                for(var j = 1; j < countColumn; j++) {
+                    $("#table").children("tbody").eq(0).children('tr').eq(i).children('td').eq(j).removeAttr('class');
+                    var parentArray = [];
+                    if(i == 1 && j == 1) {
+                        $("#table").children("tbody").eq(0).children('tr').eq(i).children('td').eq(j).text(0);
+                        parentArray.push(0);
+                        columnArray.push(parentArray);
+                        continue;
+                    }
+                    if(i != 1 && j != 1) {
+                        topleft = parseInt($("#table").children("tbody").eq(0).children('tr').eq(i - 1).children('td').eq(j - 1).text());
+                        if(inputArray[j - 2].val() == inputArray[countColumn - 2 + i - 2].val())
+                            topleft += match;
+                        else
+                            topleft += misMatch;
+                    }
+
+                    if(i != 1) {
+                        topright = parseInt($("#table").children("tbody").eq(0).children('tr').eq(i - 1).children('td').eq(j).text()) + gap;
+                        if(j == 1)    {
+                            $("#table").children("tbody").eq(0).children('tr').eq(i).children('td').eq(j).text(topright);
+                            parentArray.push(2);
+                            columnArray.push(parentArray);
+                            continue;
+                        }
+                    }
+
+                    if(j != 1) {
+                        bottomleft = parseInt($("#table").children("tbody").eq(0).children('tr').eq(i).children('td').eq(j - 1).text()) + gap;
+                        if(i == 1)    {
+                            $("#table").children("tbody").eq(0).children('tr').eq(i).children('td').eq(j).text(bottomleft);
+                            parentArray.push(3);
+                            columnArray.push(parentArray);
+                            continue;
+                        }
+                    }
+
+                    largest = topleft;
+                    largest = largest >= topright? largest : topright;
+                    largest = largest >= bottomleft? largest : bottomleft;
+                    if(largest == topleft)  {
+                        parentArray.push(1);
+                    }
+                    if(largest == topright)  {
+                        parentArray.push(2);
+                    }
+                    if(largest == bottomleft)  {
+                        parentArray.push(3);
+                    }
+                    columnArray.push(parentArray);
+                    $("#table").children("tbody").eq(0).children('tr').eq(i).children('td').eq(j).text(largest);
+                }
+                rowArray.push(columnArray);
+            }
+        }
+        //rowArray có số dòng và cột nhỏ hơn bảng 1 dòng và cột
+        // var arrow = $("<span><span>").text(">").attr('style', 'display: block; transform: rotate(90deg)');
+        //     td.append(arrow);
+        function color(row, column, subAlignment){
+            var td = $("#table").children("tbody").eq(0).children('tr').eq(row + 1).children('td').eq(column + 1);
+            td.attr('class', 'table-warning');
+            for(var i = 0; i < rowArray[row][column].length; i++) {
+                if(rowArray[row][column][i] == 1) {
+                    var arrow = $("<span><span>").text("->").attr('style', 'position: absolute; display: block; transform: rotate(225deg); top: 0; left: 0;');
+                    td.append(arrow);
+
+                    var subAlignment1 = [], subAlignment2 = [];
+                    subAlignment2.push(column + 1); subAlignment2.push(row + 1);
+                    subAlignment1.push(subAlignment2);
+                    subAlignment1 = subAlignment1.concat(subAlignment);
+                    color(row - 1, column - 1, subAlignment1);
+                }
+                else if(rowArray[row][column][i] == 2) {
+                    var arrow = $("<span><span>").text("->").attr('style', 'position: absolute; display: block; transform: rotate(270deg); top: -5px; left: 20px;');
+                    td.append(arrow);
+
+                    var subAlignment1 = [], subAlignment2 = [];
+                    subAlignment2.push(column + 1); subAlignment2.push(row + 1);
+                    subAlignment1.push(subAlignment2);
+                    subAlignment1 = subAlignment1.concat(subAlignment);
+                    color(row - 1, column, subAlignment1);
+                }
+                else if(rowArray[row][column][i] == 3) {
+                    var arrow = $("<span><span>").text("->").attr('style', 'position: absolute; display: block; transform: rotate(180deg); top: 20px; left: 0;');
+                    td.append(arrow);
+
+                    var subAlignment1 = [], subAlignment2 = [];
+                    subAlignment2.push(column + 1); subAlignment2.push(row + 1);
+                    subAlignment1.push(subAlignment2);
+                    subAlignment1 = subAlignment1.concat(subAlignment);
+                    color(row, column - 1, subAlignment1);
+                }
+                if(rowArray[row][column][i] == 0) {
+                    alignment.push(subAlignment);
+                }
+            }
+        }
+        function createTable1(columnLength, index) {
+            var row = $("<div></div>").attr('class', 'row');
+            var col = $("<div></div>").attr('class', 'col');
+            var table = $("<table></table>").attr('class', 'table').attr('style', 'width: auto');
+            for(var i = 0; i < 3; i++) {
+                var tr = $("<tr></tr>");
+                for(var j = 0; j < columnLength; j++) {
+                    if(i == 0) {
+                        var td = $("<td></td>").attr('style', 'font-weight: bold; width: 30px;').text("Trường hợp " + (index + 1) + ":");
+                        tr.append(td);
+                        break;
+                    }
+                    var td = $("<td></td>").attr('style', 'width: 30px');
+                    tr.append(td);
+                }
+                table.append(tr);
+            }
+            col.append(table);row.append(col);
+            $("#cf").append(row);
+            return table;
+        }
+        function showPath() {//$("#table").children("tbody").eq(0).children
+            for(var i = 0; i < alignment.length; i++) {
+                var table = createTable1(alignment[i].length, i);
+                for(var index = 0; index < alignment[i].length; index++) {
+                    var column = alignment[i][index][0];
+                    if(column == 1)
+                        table.children("tr").eq(1).children("td").eq(index).text("-");
+                    else if(index != 0 && alignment[i][index - 1][0] == column)
+                        table.children("tr").eq(1).children("td").eq(index).text("-");
+                    else
+                        table.children("tr").eq(1).children("td").eq(index).text(
+                            $("#table").children("tbody").eq(0).children("tr").eq(0).children("td").eq(column).children("input").val()
+                        );
+
+                    var row = alignment[i][index][1];
+                    if(row == 1)
+                        table.children("tr").eq(2).children("td").eq(index).text("-");
+                    else if(index != 0 && alignment[i][index - 1][1] == row)
+                        table.children("tr").eq(2).children("td").eq(index).text("-");
+                    else
+                        table.children("tr").eq(2).children("td").eq(index).text(
+                            $("#table").children("tbody").eq(0).children("tr").eq(row).children("td").eq(0).children("input").val()
+                        );
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container-fuild" id="cf">
+        <div class="row">
+            <div class="col-lg-2 col-md-3 col-12">
+                <span class="fw-normal text-dark">Nhập số chữ của dòng:</span>
+                <input type="text" class="form-control" id="getRow">
+            </div>
+            <div class="col-lg-2 col-md-3 col-12">
+                <span class="fw-normal text-dark">Nhập số chữ của cột:</span>
+                <input type="text" class="form-control" id="getColumn">
+            </div>
+            <div class="col-lg-2 col-md-3 col-12">
+                <input type="button" value="Tạo bảng" class="btn btn-dark" id="clickToCreateTable">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-2 col-md-3 col-12">
+                <span class="fw-normal text-dark">Nhập Match:</span>
+                <input type="text" class="form-control" id="getMatch">
+            </div>
+            <div class="col-lg-2 col-md-3 col-12">
+                <span class="fw-normal text-dark">Nhập Mismatch:</span>
+                <input type="text" class="form-control" id="getMismatch">
+            </div>
+            <div class="col-lg-2 col-md-3 col-12">
+                <span class="fw-normal text-dark">Nhập Gap:</span>
+                <input type="text" class="form-control" id="getGap">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="alert alert-danger" role="alert" style="display: none;" id="thongBaoLoi">
+                    <span>Số dòng và cột phải là số nguyên dương</span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="alert alert-danger" role="alert" style="display: none;" id="thongBaoLoi1">
+                    <span>mismatch phải lớn hơn hoặc bằng gap và nhỏ hơn match</span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-7 col-md-10">
+                <table class="table" id="table">
+    
+                </table>
+            </div>
+        </div>
+        <div class="row">
+            <div class="column">
+                <input type="button" value="Tính toán" class="btn btn-success" id="tinhToan">
+            </div>
+        </div>
+    </div>
+</body>
+</html>
